@@ -1,0 +1,88 @@
+name: Bug Report
+description: File a bug report
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hi there,
+        Thank you for opening an issue. Please note that we try to keep the issue tracker reserved for bug reports and feature requests.
+        For general usage questions, please see: https://github.com/pinotelio/terraform-provider-growthbook/discussions.
+  - type: input
+    id: provider-version
+    attributes:
+      label: GrowthBook Terraform Provider Version
+      description: Run `terraform providers` to show the version of the GrowthBook Terraform provider. If you are not running the latest version, please upgrade or check the changelogs because your issue may have already been fixed.
+      placeholder: ex. v1.0.0
+    validations:
+      required: true
+  - type: input
+    id: terraform-cli
+    attributes:
+      label: Terraform Version
+      description: Run `terraform -v` to show the version of the terraform cli.
+      placeholder: ex. v1.5.0
+    validations:
+      required: true
+  - type: input
+    id: growthbook-deployment
+    attributes:
+      label: GrowthBook Deployment
+      description: Are you using GrowthBook Cloud or a self-hosted instance? Include the version if self-hosted.
+      placeholder: ex. Cloud, or self-hosted v4.4.0
+  - type: textarea
+    id: affected-resources
+    attributes:
+      label: What resources or data sources are affected?
+      description: |
+        Please list the resources as a list, for example:
+          - growthbook_feature
+          - growthbook_project
+        If this issue appears to affect multiple resources, it may be an issue with Terraform's core, so please mention this.
+      placeholder: ex. growthbook_feature
+    validations:
+      required: true
+  - type: textarea
+    id: terraform-config
+    attributes:
+      label: Terraform Configuration Files
+      description: Copy-paste your Terraform configurations here - for large Terraform configs, please use a service like Dropbox and share a link to the ZIP file.
+      render: hcl
+  - type: textarea
+    id: debug-output
+    attributes:
+      label: Relevant debug or panic output
+      description: |
+        Provide a link to a GitHub Gist containing the complete debug or panic output: https://developer.hashicorp.com/terraform/internals/debugging.
+        Please do NOT paste the output in the issue; just paste a link to the Gist.
+        **NOTE:** Remember to review debug output before posting, and redact any sensitive data (API keys, credential values).
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What should have happened?
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: |
+        Please list the steps required to reproduce the issue, for example:
+        1. `terraform apply`
+  - type: textarea
+    id: misc-notes
+    attributes:
+      label: Important Factoids
+      description: |
+        Is there anything atypical about your setup that we should know? For example: self-hosted GrowthBook? Enterprise license? Specific GrowthBook version?
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: |
+        Are there any other GitHub issues (open or closed) or Pull Requests that should be linked here?
+      placeholder: GH-0000

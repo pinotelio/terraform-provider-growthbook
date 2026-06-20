@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/pinotelio/terraform-provider-growthbook/discussions
+    about: Ask questions or discuss ideas with the community
+  - name: GrowthBook Documentation
+    url: https://docs.growthbook.io/
+    about: Check the official GrowthBook documentation
+  - name: Terraform Documentation
+    url: https://developer.hashicorp.com/terraform/docs
+    about: Check the official Terraform documentation

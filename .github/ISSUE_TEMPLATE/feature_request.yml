@@ -1,0 +1,33 @@
+name: Feature Request
+description: File a Feature Request
+labels: ["feature-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hi there,
+        Thank you for opening a feature request. Please provide as much detail as possible to help us understand your use case.
+  - type: textarea
+    id: affected-resources
+    attributes:
+      label: What resources or data sources are affected?
+      description: |
+        Please list the resources as a list, for example:
+          - growthbook_feature
+          - growthbook_experiment_template
+        If the request is for a brand new resource or data source, name the GrowthBook API entity it should manage.
+      placeholder: ex. growthbook_feature
+    validations:
+      required: true
+  - type: textarea
+    id: feature-request
+    attributes:
+      label: Feature Request
+      description: Please describe the requested feature and the use case. ex. new resource, data source, or field in an existing resource.
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: |
+        Are there any other GitHub issues (open or closed) or Pull Requests that should be linked here?
+      placeholder: GH-0000
