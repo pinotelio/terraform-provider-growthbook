@@ -1,0 +1,39 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & Unit Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go mod download
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./... -count=1
+
+  docs:
+    name: Verify generated docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go generate ./...
+      - name: Check for uncommitted doc changes
+        run: |
+          git diff --compact-summary --exit-code || \
+            (echo "Docs are out of date; run 'go generate ./...' and commit the result." && exit 1)

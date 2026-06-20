@@ -1,0 +1,21 @@
+# Compiled binary
+terraform-provider-growthbook
+dist/
+
+# Local Terraform state and overrides used while testing the provider locally
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+.terraformrc
+terraform.rc
+
+# Go
+*.test
+*.out
+vendor/
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/
