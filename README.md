@@ -155,21 +155,6 @@ export GROWTHBOOK_API_KEY="<key>"
 make testacc
 ```
 
-## Publishing a release
-
-Releases are produced by [GoReleaser](https://goreleaser.com) and signed with GPG
-for the Terraform Registry. Tag a semver release and the `release` workflow builds
-and signs the artifacts:
-
-```bash
-git tag v0.1.0 && git push origin v0.1.0
-```
-
-Publishing to the Registry additionally requires a one-time setup: registering the
-namespace on the Terraform Registry and adding your GPG public key. The repository
-secrets `GPG_PRIVATE_KEY` and `GPG_PASSPHRASE` must be configured for the release
-workflow.
-
 ## License
 
 [MPL-2.0](./LICENSE).
