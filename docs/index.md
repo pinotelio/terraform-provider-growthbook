@@ -63,6 +63,7 @@ provider "growthbook" {
 - `api_url` (String) Base URL of the GrowthBook REST API, including the `/api/v1` suffix. Defaults to `https://api.growthbook.io/api/v1`. May also be provided via the `GROWTHBOOK_API_URL` environment variable.
 - `http_timeout_seconds` (Number) Per-request HTTP timeout in seconds. Defaults to 60.
 - `insecure_skip_verify` (Boolean) Disable TLS certificate verification when calling the API. Only useful for self-hosted instances with self-signed certificates; not recommended for production.
+- `max_requests_per_minute` (Number) Client-side request rate limit. When set, requests are evenly spaced so no more than this many are sent per minute, preventing large plans/refreshes from tripping the GrowthBook API rate limit (HTTP 429). Set it at or below your instance's limit (self-hosted defaults to 60). Defaults to 0 (disabled).
 - `page_limit` (Number) Page size used when reading paginated list endpoints. Defaults to 100.
 - `retry_max_attempts` (Number) Maximum number of attempts for retryable (HTTP 429/5xx) responses. Defaults to 4.
 - `retry_max_backoff_ms` (Number) Maximum backoff between retries, in milliseconds. Defaults to 5000.

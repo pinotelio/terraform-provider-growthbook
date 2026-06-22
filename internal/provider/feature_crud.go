@@ -21,7 +21,10 @@ func (r *featureResource) applyComputed(m *featureResourceModel, f *client.Featu
 	m.Archived = types.BoolValue(f.Archived)
 	m.ValueType = types.StringValue(f.ValueType)
 	m.DefaultValue = types.StringValue(f.DefaultValue)
-	m.Tags = sliceToStringList(f.Tags)
+	// tags is Optional+Computed: keep an explicit empty list as `[]` (not null)
+	// so a configured `tags = []` does not produce an inconsistent result or a
+	// perpetual `[] -> null` diff.
+	m.Tags = sliceToStringListEmpty(f.Tags)
 	m.Prerequisites = sliceToStringList(f.Prerequisites)
 	m.DateCreated = types.StringValue(f.DateCreated)
 	m.DateUpdated = types.StringValue(f.DateUpdated)
@@ -76,17 +79,17 @@ func (r *featureResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	keep := make(map[string]struct{}, len(state.Environments))
-	for name := range state.Environments {
-		keep[name] = struct{}{}
-	}
-	var keepFilter map[string]struct{}
-	if len(keep) > 0 {
-		keepFilter = keep
-	}
-
 	r.applyComputed(&state, feature)
-	state.Environments = flattenEnvironments(feature, keepFilter)
+	// Environments are write-only: the practitioner's configured value is
+	// preserved verbatim rather than re-read from the API. GrowthBook populates
+	// server-side defaults on rules (e.g. `coverage = 1`, `enabled = true`, a
+	// generated rule `id`) that the configuration never sets; reflecting those
+	// back into state would produce a perpetual diff that can never converge.
+	// On import there is no prior configuration, so seed environments from the
+	// API to give the practitioner a starting point.
+	if len(state.Environments) == 0 {
+		state.Environments = flattenEnvironments(feature)
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -102,7 +105,6 @@ func (r *featureResource) Update(ctx context.Context, req resource.UpdateRequest
 		Description:  optString(plan.Description),
 		Owner:        optString(plan.Owner),
 		Project:      optString(plan.Project),
-		ValueType:    plan.ValueType.ValueString(),
 		DefaultValue: optString(plan.DefaultValue),
 		Tags:         stringListToSlice(ctx, plan.Tags, &resp.Diagnostics),
 		Environments: buildEnvironments(ctx, plan.Environments, &resp.Diagnostics),

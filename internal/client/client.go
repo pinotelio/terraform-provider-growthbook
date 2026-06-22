@@ -4,6 +4,7 @@
 package client
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"sync"
@@ -40,8 +41,54 @@ type Client struct {
 	httpClient *http.Client
 	retry      RetryPolicy
 	pageLimit  int
+	limiter    *rateLimiter
 
 	writeMu sync.Mutex
+}
+
+// rateLimiter spaces outgoing requests to stay under a fixed per-minute budget.
+// GrowthBook rate limits its REST API (self-hosted defaults to 60 requests per
+// minute); without throttling, a refresh of many resources at Terraform's
+// default parallelism bursts past the limit and trips HTTP 429. The limiter
+// hands out evenly spaced "slots": concurrent callers queue and proceed one
+// interval apart, smoothing bursts instead of rejecting them.
+type rateLimiter struct {
+	mu       sync.Mutex
+	interval time.Duration
+	next     time.Time
+}
+
+func newRateLimiter(perMinute int) *rateLimiter {
+	if perMinute <= 0 {
+		return nil
+	}
+	return &rateLimiter{interval: time.Minute / time.Duration(perMinute)}
+}
+
+// wait blocks until the limiter permits another request, or until ctx is
+// cancelled. A nil limiter is a no-op, so callers need not branch on it.
+func (r *rateLimiter) wait(ctx context.Context) {
+	if r == nil {
+		return
+	}
+	r.mu.Lock()
+	now := time.Now()
+	if r.next.Before(now) {
+		r.next = now
+	}
+	wait := r.next.Sub(now)
+	r.next = r.next.Add(r.interval)
+	r.mu.Unlock()
+
+	if wait <= 0 {
+		return
+	}
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+	case <-timer.C:
+	}
 }
 
 // Option customizes a Client.
@@ -86,6 +133,16 @@ func WithRetryPolicy(p RetryPolicy) Option {
 			p.Multiplier = 2.0
 		}
 		c.retry = p
+	}
+}
+
+// WithRateLimit caps how many requests the client issues per minute by spacing
+// them evenly. A value <= 0 disables throttling (the default). Set it at or
+// below the GrowthBook instance's documented limit (self-hosted: 60/min) to keep
+// large refreshes from tripping HTTP 429.
+func WithRateLimit(perMinute int) Option {
+	return func(c *Client) {
+		c.limiter = newRateLimiter(perMinute)
 	}
 }
 

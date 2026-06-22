@@ -137,3 +137,17 @@ func sliceToStringList(s []string) types.List {
 	list, _ := types.ListValue(types.StringType, elems)
 	return list
 }
+
+// sliceToStringListEmpty is like sliceToStringList but maps a nil/empty slice to
+// an empty list rather than null. Use it for Optional+Computed list attributes
+// where the configuration may carry an explicit `[]`: collapsing that to null
+// would make the applied value differ from the planned value ("inconsistent
+// result after apply") and churn between `[]` and null on every plan.
+func sliceToStringListEmpty(s []string) types.List {
+	elems := make([]attr.Value, 0, len(s))
+	for _, v := range s {
+		elems = append(elems, types.StringValue(v))
+	}
+	list, _ := types.ListValue(types.StringType, elems)
+	return list
+}

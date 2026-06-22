@@ -132,8 +132,12 @@ func (r *featureResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"project":     schema.StringAttribute{Optional: true, Computed: true, Description: "Associated project ID."},
 			"archived":    schema.BoolAttribute{Optional: true, Computed: true, Description: "Whether the feature is archived."},
 			"value_type": schema.StringAttribute{
-				Required:    true,
-				Description: "Data type of the feature value: `boolean`, `string`, `number`, or `json`.",
+				Required: true,
+				Description: "Data type of the feature value: `boolean`, `string`, `number`, or `json`. " +
+					"GrowthBook does not allow changing a feature's value type, so changing this forces a new feature.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"default_value": schema.StringAttribute{
 				Required:    true,

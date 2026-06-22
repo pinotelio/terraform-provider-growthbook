@@ -42,6 +42,7 @@ type providerModel struct {
 	RetryMaxAttempts   types.Int64  `tfsdk:"retry_max_attempts"`
 	RetryMinBackoffMs  types.Int64  `tfsdk:"retry_min_backoff_ms"`
 	RetryMaxBackoffMs  types.Int64  `tfsdk:"retry_max_backoff_ms"`
+	MaxRequestsPerMin  types.Int64  `tfsdk:"max_requests_per_minute"`
 	PageLimit          types.Int64  `tfsdk:"page_limit"`
 }
 
@@ -87,6 +88,14 @@ func (p *growthbookProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 			"retry_max_backoff_ms": schema.Int64Attribute{
 				Optional:    true,
 				Description: "Maximum backoff between retries, in milliseconds. Defaults to 5000.",
+			},
+			"max_requests_per_minute": schema.Int64Attribute{
+				Optional: true,
+				Description: "Client-side request rate limit. When set, requests are evenly " +
+					"spaced so no more than this many are sent per minute, preventing large " +
+					"plans/refreshes from tripping the GrowthBook API rate limit (HTTP 429). " +
+					"Set it at or below your instance's limit (self-hosted defaults to 60). " +
+					"Defaults to 0 (disabled).",
 			},
 			"page_limit": schema.Int64Attribute{
 				Optional:    true,
@@ -134,6 +143,7 @@ func (p *growthbookProvider) Configure(ctx context.Context, req provider.Configu
 	c := client.New(apiURL, apiKey,
 		client.WithHTTPClient(httpClient),
 		client.WithRetryPolicy(retry),
+		client.WithRateLimit(int(int64OrDefault(cfg.MaxRequestsPerMin, 0))),
 		client.WithPageLimit(int(int64OrDefault(cfg.PageLimit, 100))),
 	)
 

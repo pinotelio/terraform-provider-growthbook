@@ -17,8 +17,11 @@ func buildEnvironments(ctx context.Context, envs map[string]featureEnvModel, dia
 	}
 	out := make(map[string]client.FeatureEnvironmentInput, len(envs))
 	for name, env := range envs {
+		// Start from a non-nil slice so an environment with no rules marshals as
+		// `[]` (which GrowthBook requires) instead of being omitted.
 		in := client.FeatureEnvironmentInput{
 			Enabled: optBool(env.Enabled),
+			Rules:   make([]client.FeatureRule, 0, len(env.Rules)),
 		}
 		for _, rule := range env.Rules {
 			in.Rules = append(in.Rules, buildRule(ctx, rule, diags))
@@ -89,19 +92,14 @@ func buildRule(ctx context.Context, m featureRuleModel, diags *diag.Diagnostics)
 }
 
 // flattenEnvironments rebuilds the Terraform environment map from an API
-// feature, keeping only the environments present in keep (the set the user
-// manages). When keep is nil, every returned environment is included.
-func flattenEnvironments(f *client.Feature, keep map[string]struct{}) map[string]featureEnvModel {
+// feature. It is used to seed state on import; during normal Read the
+// configured environments are preserved instead (see featureResource.Read).
+func flattenEnvironments(f *client.Feature) map[string]featureEnvModel {
 	if len(f.Environments) == 0 {
 		return nil
 	}
 	out := make(map[string]featureEnvModel)
 	for name, env := range f.Environments {
-		if keep != nil {
-			if _, ok := keep[name]; !ok {
-				continue
-			}
-		}
 		model := featureEnvModel{Enabled: types.BoolValue(env.Enabled)}
 		for _, rule := range env.Rules {
 			model.Rules = append(model.Rules, flattenRule(rule))

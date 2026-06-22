@@ -96,9 +96,15 @@ type Feature struct {
 }
 
 // FeatureEnvironmentInput is the per-environment create/update payload.
+//
+// Rules is intentionally not `omitempty`: GrowthBook validates
+// `environments.<env>.rules` as a required array and rejects a request where the
+// key is missing. Callers populate a non-nil (possibly empty) slice so an
+// environment with no targeting rules serializes as `[]` rather than being
+// dropped.
 type FeatureEnvironmentInput struct {
 	Enabled *bool         `json:"enabled,omitempty"`
-	Rules   []FeatureRule `json:"rules,omitempty"`
+	Rules   []FeatureRule `json:"rules"`
 }
 
 // FeatureCreateInput is the POST /features body.
@@ -114,13 +120,14 @@ type FeatureCreateInput struct {
 	Environments map[string]FeatureEnvironmentInput `json:"environments,omitempty"`
 }
 
-// FeatureUpdateInput is the POST /features/{id} body (id is immutable).
+// FeatureUpdateInput is the POST /features/{id} body. Both `id` and `valueType`
+// are immutable: the update endpoint rejects `valueType` as an unrecognized key,
+// so a value-type change is handled as a resource replacement instead.
 type FeatureUpdateInput struct {
 	Archived     *bool                              `json:"archived,omitempty"`
 	Description  *string                            `json:"description,omitempty"`
 	Owner        *string                            `json:"owner,omitempty"`
 	Project      *string                            `json:"project,omitempty"`
-	ValueType    string                             `json:"valueType,omitempty"`
 	DefaultValue *string                            `json:"defaultValue,omitempty"`
 	Tags         []string                           `json:"tags,omitempty"`
 	Environments map[string]FeatureEnvironmentInput `json:"environments,omitempty"`

@@ -68,6 +68,13 @@ func (c *Client) send(ctx context.Context, method, fullURL string, payload []byt
 	var lastErr error
 
 	for attempt := 1; attempt <= c.retry.MaxAttempts; attempt++ {
+		// Honor the client-side rate limit (if configured) before every attempt,
+		// retries included, so backoff and throttling compose.
+		c.limiter.wait(ctx)
+		if ctx.Err() != nil {
+			return nil, nil, ctx.Err()
+		}
+
 		var reader io.Reader
 		if payload != nil {
 			reader = bytes.NewReader(payload)
@@ -93,7 +100,8 @@ func (c *Client) send(ctx context.Context, method, fullURL string, payload []byt
 			if attempt == c.retry.MaxAttempts {
 				return nil, nil, err
 			}
-			interval = c.sleepBackoff(ctx, interval, attempt, 0, err)
+			c.sleep(ctx, minDuration(interval, c.retry.MaxBackoff), attempt, 0, err)
+			interval = minDuration(time.Duration(float64(interval)*c.retry.Multiplier), c.retry.MaxBackoff)
 			continue
 		}
 
@@ -111,13 +119,18 @@ func (c *Client) send(ctx context.Context, method, fullURL string, payload []byt
 			return resp, respBody, nil
 		}
 
-		wait := interval
+		// Exponential backoff is bounded by MaxBackoff, but an explicit
+		// Retry-After from the server is honored in full: a 429 that asks us to
+		// wait (e.g.) 30s must not be shortened to MaxBackoff, or the retry just
+		// hits the same limit again.
+		wait := minDuration(interval, c.retry.MaxBackoff)
 		if resp.StatusCode == http.StatusTooManyRequests {
 			if ra := retryAfter(resp); ra > 0 {
 				wait = ra
 			}
 		}
-		interval = c.sleepBackoff(ctx, wait, attempt, resp.StatusCode, nil)
+		c.sleep(ctx, wait, attempt, resp.StatusCode, nil)
+		interval = minDuration(time.Duration(float64(interval)*c.retry.Multiplier), c.retry.MaxBackoff)
 	}
 
 	if lastErr != nil {
@@ -126,10 +139,10 @@ func (c *Client) send(ctx context.Context, method, fullURL string, payload []byt
 	return nil, nil, fmt.Errorf("growthbook: request to %s exhausted retries", fullURL)
 }
 
-func (c *Client) sleepBackoff(ctx context.Context, wait time.Duration, attempt, status int, cause error) time.Duration {
-	if wait > c.retry.MaxBackoff {
-		wait = c.retry.MaxBackoff
-	}
+// sleep waits for the given duration (or until ctx is cancelled), logging the
+// pending retry. The caller is responsible for advancing the exponential
+// backoff interval between attempts.
+func (c *Client) sleep(ctx context.Context, wait time.Duration, attempt, status int, cause error) {
 	tflog.Warn(ctx, "growthbook API retry", map[string]any{
 		"attempt": attempt,
 		"status":  status,
@@ -143,12 +156,13 @@ func (c *Client) sleepBackoff(ctx context.Context, wait time.Duration, attempt, 
 	case <-ctx.Done():
 	case <-timer.C:
 	}
+}
 
-	next := time.Duration(float64(wait) * c.retry.Multiplier)
-	if next > c.retry.MaxBackoff {
-		next = c.retry.MaxBackoff
+func minDuration(a, b time.Duration) time.Duration {
+	if a < b {
+		return a
 	}
-	return next
+	return b
 }
 
 func retryAfter(resp *http.Response) time.Duration {

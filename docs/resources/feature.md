@@ -50,7 +50,7 @@ resource "growthbook_feature" "new_checkout" {
 
 - `default_value` (String) Default value returned when the feature is enabled (encoded as a string).
 - `id` (String) Feature key. May contain letters, numbers, hyphens and underscores. Changing this forces a new feature.
-- `value_type` (String) Data type of the feature value: `boolean`, `string`, `number`, or `json`.
+- `value_type` (String) Data type of the feature value: `boolean`, `string`, `number`, or `json`. GrowthBook does not allow changing a feature's value type, so changing this forces a new feature.
 
 ### Optional
 
